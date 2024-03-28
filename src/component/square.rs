@@ -1,5 +1,3 @@
-use glyphon::TextBounds;
-
 use crate::vertex::Vertex;
 
 use super::{
@@ -43,18 +41,10 @@ impl Square {
         self
     }
 
-    pub fn text(mut self, color: (u8, u8, u8), content: impl Into<String>) -> Self {
-        let text_config = TextConfig {
-            color: glyphon::Color::rgb(color.0, color.1, color.2),
-            // TODO: DEAL TEXT BOUND
-            text_bounds: TextBounds {
-                top: 0,
-                bottom: 160,
-                left: 0,
-                right: 600,
-            },
-            content: content.into(),
-        };
+    pub fn with_text(mut self, f: impl Fn(&mut TextConfig)) -> Self {
+        let (x, y) = self.display_config.position;
+        let mut text_config = TextConfig::new(x, y);
+        f(&mut text_config);
         self.text_config = Some(text_config);
         self
     }

@@ -11,7 +11,8 @@ use crate::{state::State, Application};
 pub async fn run(app: impl Application) {
     env_logger::init();
     let event_loop = EventLoop::new().unwrap();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+    let mut window = WindowBuilder::new().build(&event_loop).unwrap();
+    app.window(&mut window);
     let mut state = State::new(window, app).await;
 
     event_loop

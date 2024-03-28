@@ -10,7 +10,13 @@ impl Application for App {
         Square::new()
             .size(0.4, 0.4)
             .position(0.1, 0.1)
-            .text((255, 255, 255), "Hello Hierro2d!")
+            .with_text(|text| {
+                text.set_content("Hello hierro2d!\n你好，hierro2d！");
+            })
+    }
+
+    fn window(&self, window: &mut winit::window::Window) {
+        window.set_title("hello hierro2d");
     }
 }
 

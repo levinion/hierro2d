@@ -91,6 +91,7 @@ impl TextRenderer {
         config: &wgpu::SurfaceConfiguration,
         text_config: &TextConfig,
     ) {
+        let text_config = text_config.fit_screen(config);
         self.renderer
             .prepare(
                 device,
@@ -103,9 +104,9 @@ impl TextRenderer {
                 },
                 [TextArea {
                     buffer: &self.buffer,
-                    left: 10.0,
-                    top: 10.0,
-                    scale: 1.0,
+                    left: text_config.left,
+                    top: text_config.top,
+                    scale: text_config.scale,
                     bounds: text_config.text_bounds,
                     default_color: text_config.color,
                 }],
@@ -115,8 +116,47 @@ impl TextRenderer {
     }
 }
 
+#[derive(Clone)]
 pub struct TextConfig {
-    pub color: glyphon::Color,
-    pub text_bounds: TextBounds,
-    pub content: String,
+    pub(crate) left: f32,
+    pub(crate) top: f32,
+    pub(crate) scale: f32,
+    pub(crate) color: glyphon::Color,
+    pub(crate) text_bounds: TextBounds,
+    pub(crate) content: String,
+}
+
+impl TextConfig {
+    pub(crate) fn new(x: f32, y: f32) -> Self {
+        Self {
+            left: x,
+            top: y,
+            scale: 1.,
+            color: glyphon::Color::rgb(255, 255, 255),
+            text_bounds: TextBounds::default(),
+            content: String::new(),
+        }
+    }
+
+    pub(crate) fn fit_screen(&self, config: &wgpu::SurfaceConfiguration) -> Self {
+        let mut new_instance = self.clone();
+        new_instance.left = self.left * config.width as f32;
+        new_instance.top = self.top * config.height as f32;
+        new_instance
+    }
+    pub fn set_color(&mut self, r: u8, g: u8, b: u8) -> &mut Self {
+        self.color = glyphon::Color::rgb(r, g, b);
+        self
+    }
+
+    pub fn set_content(&mut self, content: impl Into<String>) -> &mut Self {
+        self.content = content.into();
+        self
+    }
+
+    pub fn set_bound(&mut self, x: i32, y: i32) -> &mut Self {
+        self.text_bounds.bottom = y;
+        self.text_bounds.right = x;
+        self
+    }
 }
