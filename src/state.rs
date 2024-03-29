@@ -3,7 +3,7 @@ use std::{iter::once, sync::Arc};
 use winit::{dpi::PhysicalSize, event::WindowEvent, window::Window};
 
 use crate::{
-    component::{Component, IntoComponent},
+    component::{Component, Components},
     Application,
 };
 
@@ -14,7 +14,7 @@ pub struct State {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     window: Arc<Window>,
-    component: Component,
+    components: Components,
 }
 
 impl State {
@@ -72,7 +72,11 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let component = app.view().into_component(&device, &queue, &config);
+        let mut root = app.view();
+        root.init(&device, &queue, &config);
+        let mut components = root.collect_and_init(&device, &queue, &config);
+        components.push(Box::new(root));
+        components.sort_by_key(|a| std::cmp::Reverse(a.depth()));
 
         Self {
             surface,
@@ -81,7 +85,7 @@ impl State {
             config,
             size,
             window,
-            component,
+            components,
         }
     }
 
@@ -110,8 +114,9 @@ impl State {
     pub fn update(&mut self) {}
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        self.component
-            .prepare(&self.device, &self.queue, &self.config);
+        self.components
+            .iter_mut()
+            .for_each(|component| component.prepare(&self.device, &self.queue, &self.config));
 
         let output = self.surface.get_current_texture()?;
         let view = output
@@ -145,12 +150,16 @@ impl State {
                 timestamp_writes: None,
             });
 
-            self.component.render(&mut render_pass, 0);
+            self.components
+                .iter_mut()
+                .for_each(|component| component.render(&mut render_pass));
         }
 
         self.queue.submit(once(encoder.finish()));
         output.present();
-        self.component.clean();
+        self.components
+            .iter_mut()
+            .for_each(|component| component.clean());
         Ok(())
     }
 }

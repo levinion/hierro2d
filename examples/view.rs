@@ -1,16 +1,17 @@
 use hierro2d::{
-    component::{IntoComponent, Square},
+    component::{Component, Square},
     Application,
 };
 
 struct App;
 
 impl Application for App {
-    fn view(&self) -> impl IntoComponent {
+    fn view(self) -> impl Component {
         Square::new()
             .size(0.4, 0.4)
             .position(0.1, 0.1)
             .with_text(|text| {
+                text.set_color(0, 0, 0);
                 text.set_content("Hello hierro2d!\n你好，hierro2d！");
             })
     }

@@ -1,8 +1,9 @@
 use crate::vertex::Vertex;
 
 use super::{
-    text::{TextConfig, TextRenderer},
-    Component, ComponentBuilder, IntoComponent,
+    common,
+    text::{TextConfig, TextObject},
+    Component, Components,
 };
 
 struct DisplayConfig {
@@ -11,15 +12,31 @@ struct DisplayConfig {
     color: (u8, u8, u8),
 }
 
+impl Default for DisplayConfig {
+    fn default() -> Self {
+        Self {
+            size: (0., 0.),
+            position: (0., 0.),
+            color: (0, 0, 255),
+        }
+    }
+}
+
 struct NormalizedDisplayConfig {
     size: (f32, f32),
     position: (f32, f32),
     color: (f32, f32, f32),
 }
 
+#[derive(Default)]
 pub struct Square {
     display_config: DisplayConfig,
     text_config: Option<TextConfig>,
+    render_pipeline: Option<wgpu::RenderPipeline>,
+    vertex_buffer: Option<wgpu::Buffer>,
+    index_buffer: Option<wgpu::Buffer>,
+    indices_length: Option<u32>,
+    text_objects: Components,
 }
 
 impl Square {
@@ -50,34 +67,51 @@ impl Square {
     }
 }
 
-impl Default for Square {
-    fn default() -> Self {
-        Self {
-            display_config: DisplayConfig {
-                size: (0., 0.),
-                position: (0., 0.),
-                color: (0, 0, 255),
-            },
-            text_config: None,
+impl Component for Square {
+    fn init(
+        &mut self,
+        device: &wgpu::Device,
+        _queue: &wgpu::Queue,
+        config: &wgpu::SurfaceConfiguration,
+    ) {
+        let vertices = self.create_vertices();
+        let vertex_buffer = common::create_vertex_buffer(device, &vertices);
+        let indices = [0, 1, 2, 2, 3, 0];
+        let index_buffer = common::create_index_buffer(device, &indices);
+        let render_pipeline = common::create_render_pipeline(
+            device,
+            config,
+            &[],
+            include_str!("../shader.wgsl"),
+            &[Vertex::desc()],
+        );
+        self.vertex_buffer = Some(vertex_buffer);
+        self.index_buffer = Some(index_buffer);
+        self.render_pipeline = Some(render_pipeline);
+        self.indices_length = Some(indices.len() as _);
+
+        if let Some(text_config) = self.text_config.clone() {
+            let text_object = TextObject::new(text_config);
+            self.text_objects.push(Box::new(text_object));
         }
     }
-}
 
-impl IntoComponent for Square {
-    fn into_component(
-        self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        config: &wgpu::SurfaceConfiguration,
-    ) -> Component {
-        let vertices = self.create_vertices();
-        let indices = [0, 1, 2, 2, 3, 0];
-        let mut builder = ComponentBuilder::new(vertices, indices);
-        if let Some(text_config) = self.text_config {
-            let text_renderer = TextRenderer::new(device, queue, config, &text_config);
-            builder.add_text_object(text_renderer, text_config);
-        }
-        builder.build(device, config)
+    fn render<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>) {
+        render_pass.set_pipeline(self.render_pipeline.as_ref().unwrap());
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.as_ref().unwrap().slice(..));
+        render_pass.set_index_buffer(
+            self.index_buffer.as_ref().unwrap().slice(..),
+            wgpu::IndexFormat::Uint16,
+        );
+        render_pass.draw_indexed(0..self.indices_length.unwrap(), 0, 0..1);
+    }
+
+    fn sub_components(&mut self) -> Components {
+        std::mem::take(&mut self.text_objects)
+    }
+
+    fn depth(&self) -> u8 {
+        1
     }
 }
 

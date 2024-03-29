@@ -4,46 +4,67 @@ use glyphon::{
 };
 use wgpu::TextureFormat;
 
+use super::Component;
+
+#[derive(Default)]
 pub struct TextObject {
-    renderer: TextRenderer,
+    renderer: Option<TextRenderer>,
     config: TextConfig,
 }
 
-impl<'a> TextObject {
-    pub fn new(renderer: TextRenderer, config: TextConfig) -> Self {
-        Self { renderer, config }
-    }
-
-    pub fn prepare(
-        &'a mut self,
+impl Component for TextObject {
+    fn init(
+        &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         config: &wgpu::SurfaceConfiguration,
     ) {
-        self.renderer.prepare(device, queue, config, &self.config);
+        let renderer = TextRenderer::new(device, queue, config, &self.config);
+        self.renderer = Some(renderer);
     }
 
-    pub fn render(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>) {
+    fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        config: &wgpu::SurfaceConfiguration,
+    ) {
         self.renderer
-            .renderer
-            .render(&self.renderer.atlas, render_pass)
+            .as_mut()
+            .unwrap()
+            .prepare(device, queue, config, &self.config);
+    }
+
+    fn render<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>) {
+        self.renderer
+            .as_ref()
+            .unwrap()
+            .gl_renderer
+            .render(&self.renderer.as_ref().unwrap().atlas, render_pass)
             .unwrap();
     }
 
-    pub fn clean(&mut self) {
-        self.renderer.atlas.trim();
+    fn clean(&mut self) {
+        self.renderer.as_mut().unwrap().atlas.trim();
+    }
+
+    fn depth(&self) -> u8 {
+        0
     }
 }
 
-impl Drop for TextObject {
-    fn drop(&mut self) {
-        self.renderer.atlas.trim();
+impl TextObject {
+    pub fn new(config: TextConfig) -> Self {
+        Self {
+            config,
+            ..Default::default()
+        }
     }
 }
 
 pub struct TextRenderer {
     cache: SwashCache,
-    renderer: GlTextRenderer,
+    gl_renderer: GlTextRenderer,
     font_system: FontSystem,
     atlas: TextAtlas,
     buffer: Buffer,
@@ -60,7 +81,7 @@ impl TextRenderer {
         let mut font_system = FontSystem::new();
         let cache = SwashCache::new();
         let mut atlas = TextAtlas::new(device, queue, format);
-        let renderer =
+        let gl_renderer =
             GlTextRenderer::new(&mut atlas, device, wgpu::MultisampleState::default(), None);
 
         let mut buffer = Buffer::new(&mut font_system, Metrics::new(30.0, 42.0));
@@ -76,7 +97,7 @@ impl TextRenderer {
         buffer.shape_until_scroll(&mut font_system);
 
         Self {
-            renderer,
+            gl_renderer,
             cache,
             font_system,
             atlas,
@@ -92,7 +113,7 @@ impl TextRenderer {
         text_config: &TextConfig,
     ) {
         let text_config = text_config.fit_screen(config);
-        self.renderer
+        self.gl_renderer
             .prepare(
                 device,
                 queue,
@@ -116,7 +137,7 @@ impl TextRenderer {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TextConfig {
     pub(crate) left: f32,
     pub(crate) top: f32,
@@ -126,15 +147,25 @@ pub struct TextConfig {
     pub(crate) content: String,
 }
 
+impl Default for TextConfig {
+    fn default() -> Self {
+        Self {
+            left: 0.,
+            top: 0.,
+            scale: 1.,
+            color: glyphon::Color::rgb(255, 255, 255),
+            text_bounds: TextBounds::default(),
+            content: String::new(),
+        }
+    }
+}
+
 impl TextConfig {
     pub(crate) fn new(x: f32, y: f32) -> Self {
         Self {
             left: x,
             top: y,
-            scale: 1.,
-            color: glyphon::Color::rgb(255, 255, 255),
-            text_bounds: TextBounds::default(),
-            content: String::new(),
+            ..Default::default()
         }
     }
 
