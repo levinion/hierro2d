@@ -1,12 +1,12 @@
 mod common;
 mod container;
 mod empty;
-mod square;
+mod rect;
 mod text;
 
 pub use container::Container;
 pub use empty::Empty;
-pub use square::Square;
+pub use rect::Rect;
 pub use text::Text;
 
 pub trait Component: 'static {

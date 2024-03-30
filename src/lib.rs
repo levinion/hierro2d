@@ -1,7 +1,7 @@
 mod app;
 pub mod component;
 mod state;
-pub mod vertex;
+mod vertex;
 mod winit;
 
 pub use app::Application;

@@ -67,8 +67,8 @@ impl Text {
         Self::default()
     }
 
-    pub fn color(mut self, r: u8, g: u8, b: u8) -> Self {
-        self.config.color = glyphon::Color::rgb(r, g, b);
+    pub fn color(mut self, r: u8, g: u8, b: u8, a: f32) -> Self {
+        self.config.color = glyphon::Color::rgba(r, g, b, (a * 255.) as u8);
         self
     }
 
@@ -186,7 +186,7 @@ impl Default for TextConfig {
             left: 0.,
             top: 0.,
             scale: 1.,
-            color: glyphon::Color::rgb(255, 255, 255),
+            color: glyphon::Color::rgba(255, 255, 255, 255),
             text_bounds: TextBounds::default(),
             content: String::new(),
         }

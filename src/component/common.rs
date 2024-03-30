@@ -2,7 +2,7 @@ use wgpu::util::DeviceExt;
 
 use crate::vertex::Vertex;
 
-pub fn create_vertex_buffer(device: &wgpu::Device, vertices: &[Vertex]) -> wgpu::Buffer {
+pub fn create_vertex_buffer(device: &wgpu::Device, vertices: &[impl Vertex]) -> wgpu::Buffer {
     device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Vertex Buffer"),
         contents: bytemuck::cast_slice(vertices),
@@ -70,4 +70,33 @@ pub fn create_render_pipeline(
         },
         multiview: None,
     })
+}
+
+pub fn create_bind_group(
+    device: &wgpu::Device,
+    buffer: &wgpu::Buffer,
+) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
+    let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        entries: &[wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+            count: None,
+        }],
+        label: Some("bind group layout"),
+    });
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        layout: &bind_group_layout,
+        entries: &[wgpu::BindGroupEntry {
+            binding: 0,
+            resource: buffer.as_entire_binding(),
+        }],
+        label: Some("bind group"),
+    });
+
+    (bind_group, bind_group_layout)
 }
