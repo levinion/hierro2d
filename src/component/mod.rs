@@ -1,9 +1,11 @@
 mod common;
 mod container;
+mod empty;
 mod square;
 mod text;
 
 pub use container::Container;
+pub use empty::Empty;
 pub use square::Square;
 pub use text::Text;
 
@@ -28,15 +30,35 @@ pub trait Component: 'static {
 
     fn clean(&mut self) {}
 
-    fn sub_components(&mut self) -> Components {
-        vec![]
+    fn children(&mut self) -> Option<&mut Components> {
+        None
     }
 
     fn depth(&self) -> u8 {
         0
     }
 
+    fn size_mut(&mut self) -> Option<(&mut f32, &mut f32)>;
+
+    fn position_mut(&mut self) -> Option<(&mut f32, &mut f32)>;
+
     // inner methods
+
+    fn apply_workspace(&mut self, size: (f32, f32), offset: (f32, f32)) {
+        if let Some((x, y)) = self.position_mut() {
+            *x = offset.0 + *x * size.0;
+            *y = offset.1 + *y * size.1;
+        }
+        if let Some((width, height)) = self.size_mut() {
+            *width *= size.0;
+            *height *= size.1;
+        }
+        if let Some(children) = self.children() {
+            children
+                .iter_mut()
+                .for_each(|child| child.apply_workspace(size, offset));
+        }
+    }
 
     fn collect_and_init(
         &mut self,
@@ -45,17 +67,22 @@ pub trait Component: 'static {
         config: &wgpu::SurfaceConfiguration,
     ) -> Components {
         let mut r = vec![];
-        let sub_components = self.sub_components();
-        for mut component in sub_components {
-            component.init(device, queue, config);
-            let mut children_components = component.collect_and_init(device, queue, config);
-            r.push(component);
+        let children = self.take_children();
+        for mut child in children {
+            child.init(device, queue, config);
+            let mut children_components = child.collect_and_init(device, queue, config);
+            r.push(child);
             r.append(&mut children_components);
         }
         r
     }
 
-    fn apply_workspace(&mut self, _size: (f32, f32), _offset: (f32, f32)) {}
+    fn take_children(&mut self) -> Components {
+        match self.children() {
+            Some(children) => std::mem::take(children),
+            None => vec![],
+        }
+    }
 }
 
 pub type Components = Vec<Box<dyn Component>>;

@@ -1,5 +1,5 @@
 use hierro2d::{
-    component::{Component, Container, Square, Text},
+    component::{Component, Container, Empty, Square, Text},
     Application,
 };
 
@@ -14,11 +14,16 @@ impl Application for App {
             .color(100, 100, 100)
             .with_child(text)
             .depth(1);
-        Square::new()
+        let square = Square::new()
             .size(0.4, 0.4)
             .position(0.1, 0.1)
             .with_child(sub_square)
-            .depth(2)
+            .depth(2);
+
+        Empty::new()
+            .position(0.5, 0.5)
+            .size(0.8, 0.8)
+            .with_child(square)
     }
 
     fn window(&self, window: &mut winit::window::Window) {

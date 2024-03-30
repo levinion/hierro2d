@@ -94,32 +94,30 @@ impl Component for Square {
         render_pass.draw_indexed(0..self.indices_length.unwrap(), 0, 0..1);
     }
 
-    fn sub_components(&mut self) -> Components {
-        std::mem::take(&mut self.children)
+    fn children(&mut self) -> Option<&mut Components> {
+        Some(&mut self.children)
     }
 
     fn depth(&self) -> u8 {
         self.depth
     }
 
-    fn apply_workspace(&mut self, size: (f32, f32), offset: (f32, f32)) {
-        self.display_config.position.0 = offset.0 + self.display_config.position.0 * size.0;
-        self.display_config.position.1 = offset.1 + self.display_config.position.1 * size.1;
-        self.display_config.size.0 *= size.0;
-        self.display_config.size.1 *= size.1;
-        self.children
-            .iter_mut()
-            .for_each(|child| child.apply_workspace(size, offset));
+    fn position_mut(&mut self) -> Option<(&mut f32, &mut f32)> {
+        Some((
+            &mut self.display_config.position.0,
+            &mut self.display_config.position.1,
+        ))
+    }
+
+    fn size_mut(&mut self) -> Option<(&mut f32, &mut f32)> {
+        Some((
+            &mut self.display_config.size.0,
+            &mut self.display_config.size.1,
+        ))
     }
 }
 
-impl Container for Square {
-    fn with_child(mut self, mut child: impl Component) -> Self {
-        child.apply_workspace(self.display_config.size, self.display_config.position);
-        self.children.push(Box::new(child));
-        self
-    }
-}
+impl Container for Square {}
 
 impl Square {
     fn normalize(&self) -> NormalizedDisplayConfig {

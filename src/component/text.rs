@@ -53,9 +53,12 @@ impl Component for Text {
         self.depth
     }
 
-    fn apply_workspace(&mut self, size: (f32, f32), offset: (f32, f32)) {
-        self.config.left = offset.0 + size.0 * self.config.left;
-        self.config.top = offset.1 + size.1 * self.config.top;
+    fn position_mut(&mut self) -> Option<(&mut f32, &mut f32)> {
+        Some((&mut self.config.left, &mut self.config.top))
+    }
+
+    fn size_mut(&mut self) -> Option<(&mut f32, &mut f32)> {
+        None
     }
 }
 
