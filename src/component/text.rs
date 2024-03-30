@@ -7,12 +7,13 @@ use wgpu::TextureFormat;
 use super::Component;
 
 #[derive(Default)]
-pub struct TextObject {
+pub struct Text {
     renderer: Option<TextRenderer>,
     config: TextConfig,
+    depth: u8,
 }
 
-impl Component for TextObject {
+impl Component for Text {
     fn init(
         &mut self,
         device: &wgpu::Device,
@@ -49,16 +50,45 @@ impl Component for TextObject {
     }
 
     fn depth(&self) -> u8 {
-        0
+        self.depth
+    }
+
+    fn apply_workspace(&mut self, size: (f32, f32), offset: (f32, f32)) {
+        self.config.left = offset.0 + size.0 * self.config.left;
+        self.config.top = offset.1 + size.1 * self.config.top;
     }
 }
 
-impl TextObject {
-    pub fn new(config: TextConfig) -> Self {
-        Self {
-            config,
-            ..Default::default()
-        }
+impl Text {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn color(mut self, r: u8, g: u8, b: u8) -> Self {
+        self.config.color = glyphon::Color::rgb(r, g, b);
+        self
+    }
+
+    pub fn content(mut self, content: impl Into<String>) -> Self {
+        self.config.content = content.into();
+        self
+    }
+
+    pub fn position(mut self, x: f32, y: f32) -> Self {
+        self.config.left = x;
+        self.config.top = y;
+        self
+    }
+
+    pub fn bound(mut self, x: i32, y: i32) -> Self {
+        self.config.text_bounds.bottom = y;
+        self.config.text_bounds.right = x;
+        self
+    }
+
+    pub fn depth(mut self, depth: u8) -> Self {
+        self.depth = depth;
+        self
     }
 }
 
@@ -161,33 +191,10 @@ impl Default for TextConfig {
 }
 
 impl TextConfig {
-    pub(crate) fn new(x: f32, y: f32) -> Self {
-        Self {
-            left: x,
-            top: y,
-            ..Default::default()
-        }
-    }
-
     pub(crate) fn fit_screen(&self, config: &wgpu::SurfaceConfiguration) -> Self {
         let mut new_instance = self.clone();
         new_instance.left = self.left * config.width as f32;
         new_instance.top = self.top * config.height as f32;
         new_instance
-    }
-    pub fn set_color(&mut self, r: u8, g: u8, b: u8) -> &mut Self {
-        self.color = glyphon::Color::rgb(r, g, b);
-        self
-    }
-
-    pub fn set_content(&mut self, content: impl Into<String>) -> &mut Self {
-        self.content = content.into();
-        self
-    }
-
-    pub fn set_bound(&mut self, x: i32, y: i32) -> &mut Self {
-        self.text_bounds.bottom = y;
-        self.text_bounds.right = x;
-        self
     }
 }

@@ -1,10 +1,6 @@
 use crate::vertex::Vertex;
 
-use super::{
-    common,
-    text::{TextConfig, TextObject},
-    Component, Components,
-};
+use super::{common, container::Container, Component, Components};
 
 struct DisplayConfig {
     size: (f32, f32),
@@ -31,12 +27,12 @@ struct NormalizedDisplayConfig {
 #[derive(Default)]
 pub struct Square {
     display_config: DisplayConfig,
-    text_config: Option<TextConfig>,
     render_pipeline: Option<wgpu::RenderPipeline>,
     vertex_buffer: Option<wgpu::Buffer>,
     index_buffer: Option<wgpu::Buffer>,
     indices_length: Option<u32>,
-    text_objects: Components,
+    children: Components,
+    depth: u8,
 }
 
 impl Square {
@@ -58,11 +54,8 @@ impl Square {
         self
     }
 
-    pub fn with_text(mut self, f: impl Fn(&mut TextConfig)) -> Self {
-        let (x, y) = self.display_config.position;
-        let mut text_config = TextConfig::new(x, y);
-        f(&mut text_config);
-        self.text_config = Some(text_config);
+    pub fn depth(mut self, depth: u8) -> Self {
+        self.depth = depth;
         self
     }
 }
@@ -82,18 +75,13 @@ impl Component for Square {
             device,
             config,
             &[],
-            include_str!("../shader.wgsl"),
+            include_str!("square.wgsl"),
             &[Vertex::desc()],
         );
         self.vertex_buffer = Some(vertex_buffer);
         self.index_buffer = Some(index_buffer);
         self.render_pipeline = Some(render_pipeline);
         self.indices_length = Some(indices.len() as _);
-
-        if let Some(text_config) = self.text_config.clone() {
-            let text_object = TextObject::new(text_config);
-            self.text_objects.push(Box::new(text_object));
-        }
     }
 
     fn render<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>) {
@@ -107,11 +95,29 @@ impl Component for Square {
     }
 
     fn sub_components(&mut self) -> Components {
-        std::mem::take(&mut self.text_objects)
+        std::mem::take(&mut self.children)
     }
 
     fn depth(&self) -> u8 {
-        1
+        self.depth
+    }
+
+    fn apply_workspace(&mut self, size: (f32, f32), offset: (f32, f32)) {
+        self.display_config.position.0 = offset.0 + self.display_config.position.0 * size.0;
+        self.display_config.position.1 = offset.1 + self.display_config.position.1 * size.1;
+        self.display_config.size.0 *= size.0;
+        self.display_config.size.1 *= size.1;
+        self.children
+            .iter_mut()
+            .for_each(|child| child.apply_workspace(size, offset));
+    }
+}
+
+impl Container for Square {
+    fn with_child(mut self, mut child: impl Component) -> Self {
+        child.apply_workspace(self.display_config.size, self.display_config.position);
+        self.children.push(Box::new(child));
+        self
     }
 }
 

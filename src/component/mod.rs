@@ -1,10 +1,13 @@
 mod common;
+mod container;
 mod square;
 mod text;
 
-pub use square::*;
+pub use container::Container;
+pub use square::Square;
+pub use text::Text;
 
-pub trait Component {
+pub trait Component: 'static {
     fn init(
         &mut self,
         _device: &wgpu::Device,
@@ -51,6 +54,8 @@ pub trait Component {
         }
         r
     }
+
+    fn apply_workspace(&mut self, _size: (f32, f32), _offset: (f32, f32)) {}
 }
 
 pub type Components = Vec<Box<dyn Component>>;
