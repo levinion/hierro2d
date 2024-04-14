@@ -1,11 +1,15 @@
 mod bind_group;
 mod vertex;
 
+use std::sync::Arc;
+
+use winit::window::Window;
+
 use crate::vertex::Vertex;
 
 use self::{
     bind_group::{create_rect_buffer, RectUniform},
-    vertex::SquareVertex,
+    vertex::RectVertex,
 };
 
 use super::{
@@ -24,10 +28,10 @@ struct DisplayConfig {
 impl Default for DisplayConfig {
     fn default() -> Self {
         Self {
-            size: (0., 0.),
+            size: (1., 1.),
             position: (0., 0.),
             color: (0, 0, 255, 1.),
-            radius: 0.,
+            radius: 0.1,
         }
     }
 }
@@ -47,6 +51,7 @@ pub struct Rect {
     vertex_buffer: Option<wgpu::Buffer>,
     index_buffer: Option<wgpu::Buffer>,
     indices_length: Option<u32>,
+    bind_group_layout: Option<wgpu::BindGroupLayout>,
     bind_group: Option<wgpu::BindGroup>,
     children: Components,
     depth: u8,
@@ -80,6 +85,36 @@ impl Rect {
         self.display_config.radius = radius;
         self
     }
+
+    pub fn center(mut self) -> Self {
+        if let Some(size) = self.size_mut() {
+            let size = (*size.0, *size.1);
+            if let Some(position) = self.position_mut() {
+                (*position.0, *position.1) = ((1. - size.0) / 2., (1. - size.1) / 2.);
+            }
+        }
+        self
+    }
+
+    pub fn center_x(mut self) -> Self {
+        if let Some(size) = self.size_mut() {
+            let size = (*size.0, *size.1);
+            if let Some(position) = self.position_mut() {
+                *position.0 = (1. - size.0) / 2.;
+            }
+        }
+        self
+    }
+
+    pub fn center_y(mut self) -> Self {
+        if let Some(size) = self.size_mut() {
+            let size = (*size.0, *size.1);
+            if let Some(position) = self.position_mut() {
+                *position.1 = (1. - size.1) / 2.;
+            }
+        }
+        self
+    }
 }
 
 impl Component for Rect {
@@ -93,22 +128,30 @@ impl Component for Rect {
         let vertex_buffer = common::create_vertex_buffer(device, &vertices);
         let indices = [0, 1, 2, 2, 3, 0];
         let index_buffer = common::create_index_buffer(device, &indices);
-        let (bind_group, bind_group_layout) = self.create_bind_group(device);
+        let bind_group_layout = common::create_bind_group_layout(device);
         let render_pipeline = common::create_render_pipeline(
             device,
             config,
             &[&bind_group_layout],
             include_str!("rect.wgsl"),
-            &[SquareVertex::desc()],
+            &[RectVertex::desc()],
         );
         self.vertex_buffer = Some(vertex_buffer);
         self.index_buffer = Some(index_buffer);
         self.render_pipeline = Some(render_pipeline);
         self.indices_length = Some(indices.len() as _);
-        self.bind_group = Some(bind_group);
+        self.bind_group_layout = Some(bind_group_layout);
     }
 
-    fn render<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>) {
+    fn render<'a>(
+        &'a mut self,
+        device: &wgpu::Device,
+        window: Arc<Window>,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
+        let bind_group =
+            self.create_bind_group(device, self.bind_group_layout.as_ref().unwrap(), window);
+        self.bind_group = Some(bind_group);
         render_pass.set_pipeline(self.render_pipeline.as_ref().unwrap());
         render_pass.set_bind_group(0, self.bind_group.as_ref().unwrap(), &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.as_ref().unwrap().slice(..));
@@ -160,7 +203,7 @@ impl Rect {
         }
     }
 
-    fn create_vertices(&self) -> Vec<SquareVertex> {
+    fn create_vertices(&self) -> Vec<RectVertex> {
         let NormalizedDisplayConfig {
             size: (width, height),
             position: (x, y),
@@ -168,34 +211,40 @@ impl Rect {
             ..
         } = self.normalize();
         let vertices = &[
-            SquareVertex {
+            RectVertex {
                 position: [x, y - height],
                 color: [r, g, b, a],
             }, // A
-            SquareVertex {
+            RectVertex {
                 position: [x + width, y - height],
                 color: [r, g, b, a],
             }, // B
-            SquareVertex {
+            RectVertex {
                 position: [x + width, y],
                 color: [r, g, b, a],
             }, // C
-            SquareVertex {
+            RectVertex {
                 position: [x, y],
                 color: [r, g, b, a],
             }, // D
         ];
-        vertices.try_into().unwrap()
+        vertices.into()
     }
 
-    fn create_bind_group(&self, device: &wgpu::Device) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
-        dbg!(self.normalize());
+    fn create_bind_group(
+        &self,
+        device: &wgpu::Device,
+        layout: &wgpu::BindGroupLayout,
+        window: Arc<Window>,
+    ) -> wgpu::BindGroup {
         let NormalizedDisplayConfig {
             size: (width, height),
             position: (x, y),
             radius,
             ..
         } = self.normalize();
+        let size = window.inner_size();
+        let resolution = [size.width as f32, size.height as f32];
         let buffer = create_rect_buffer(
             device,
             RectUniform {
@@ -203,8 +252,9 @@ impl Rect {
                 size: [width, height],
                 radius,
                 _padding: 0.,
+                resolution,
             },
         );
-        create_bind_group(device, &buffer)
+        create_bind_group(device, layout, &buffer)
     }
 }

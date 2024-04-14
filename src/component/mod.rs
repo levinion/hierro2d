@@ -4,10 +4,13 @@ mod empty;
 mod rect;
 mod text;
 
+use std::sync::Arc;
+
 pub use container::Container;
 pub use empty::Empty;
 pub use rect::Rect;
 pub use text::Text;
+use winit::window::Window;
 
 pub trait Component: 'static {
     fn init(
@@ -26,7 +29,13 @@ pub trait Component: 'static {
     ) {
     }
 
-    fn render<'a>(&'a mut self, _render_pass: &mut wgpu::RenderPass<'a>) {}
+    fn render<'a>(
+        &'a mut self,
+        _device: &wgpu::Device,
+        _window: Arc<Window>,
+        _render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
+    }
 
     fn clean(&mut self) {}
 

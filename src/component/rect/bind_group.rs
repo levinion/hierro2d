@@ -7,6 +7,7 @@ pub struct RectUniform {
     pub size: [f32; 2],
     pub radius: f32,
     pub _padding: f32,
+    pub resolution: [f32; 2],
 }
 
 pub fn create_rect_buffer(device: &wgpu::Device, rect: RectUniform) -> wgpu::Buffer {

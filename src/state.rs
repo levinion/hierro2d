@@ -150,9 +150,9 @@ impl State {
                 timestamp_writes: None,
             });
 
-            self.components
-                .iter_mut()
-                .for_each(|component| component.render(&mut render_pass));
+            self.components.iter_mut().for_each(|component| {
+                component.render(&self.device, self.window.clone(), &mut render_pass)
+            });
         }
 
         self.queue.submit(once(encoder.finish()));

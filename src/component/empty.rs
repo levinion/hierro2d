@@ -21,6 +21,36 @@ impl Empty {
         self.size = (width, height);
         self
     }
+
+    pub fn center(mut self) -> Self {
+        if let Some(size) = self.size_mut() {
+            let size = (*size.0, *size.1);
+            if let Some(position) = self.position_mut() {
+                (*position.0, *position.1) = ((1. - size.0) / 2., (1. - size.1) / 2.);
+            }
+        }
+        self
+    }
+
+    pub fn center_x(mut self) -> Self {
+        if let Some(size) = self.size_mut() {
+            let size = (*size.0, *size.1);
+            if let Some(position) = self.position_mut() {
+                *position.0 = (1. - size.0) / 2.;
+            }
+        }
+        self
+    }
+
+    pub fn center_y(mut self) -> Self {
+        if let Some(size) = self.size_mut() {
+            let size = (*size.0, *size.1);
+            if let Some(position) = self.position_mut() {
+                *position.1 = (1. - size.1) / 2.;
+            }
+        }
+        self
+    }
 }
 
 impl Component for Empty {

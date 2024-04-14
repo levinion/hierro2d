@@ -36,7 +36,12 @@ impl Component for Text {
             .prepare(device, queue, config, &self.config);
     }
 
-    fn render<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>) {
+    fn render<'a>(
+        &'a mut self,
+        _device: &wgpu::Device,
+        _window: std::sync::Arc<winit::window::Window>,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
         self.renderer
             .as_ref()
             .unwrap()
@@ -91,6 +96,36 @@ impl Text {
 
     pub fn depth(mut self, depth: u8) -> Self {
         self.depth = depth;
+        self
+    }
+
+    pub fn center(mut self) -> Self {
+        if let Some(size) = self.size_mut() {
+            let size = (*size.0, *size.1);
+            if let Some(position) = self.position_mut() {
+                (*position.0, *position.1) = ((1. - size.0) / 2., (1. - size.1) / 2.);
+            }
+        }
+        self
+    }
+
+    pub fn center_x(mut self) -> Self {
+        if let Some(size) = self.size_mut() {
+            let size = (*size.0, *size.1);
+            if let Some(position) = self.position_mut() {
+                *position.0 = (1. - size.0) / 2.;
+            }
+        }
+        self
+    }
+
+    pub fn center_y(mut self) -> Self {
+        if let Some(size) = self.size_mut() {
+            let size = (*size.0, *size.1);
+            if let Some(position) = self.position_mut() {
+                *position.1 = (1. - size.1) / 2.;
+            }
+        }
         self
     }
 }

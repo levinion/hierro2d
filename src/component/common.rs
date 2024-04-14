@@ -72,11 +72,8 @@ pub fn create_render_pipeline(
     })
 }
 
-pub fn create_bind_group(
-    device: &wgpu::Device,
-    buffer: &wgpu::Buffer,
-) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
-    let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+pub fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         entries: &[wgpu::BindGroupLayoutEntry {
             binding: 0,
             visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
@@ -88,15 +85,20 @@ pub fn create_bind_group(
             count: None,
         }],
         label: Some("bind group layout"),
-    });
-    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        layout: &bind_group_layout,
+    })
+}
+
+pub fn create_bind_group(
+    device: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    buffer: &wgpu::Buffer,
+) -> wgpu::BindGroup {
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        layout,
         entries: &[wgpu::BindGroupEntry {
             binding: 0,
             resource: buffer.as_entire_binding(),
         }],
         label: Some("bind group"),
-    });
-
-    (bind_group, bind_group_layout)
+    })
 }
