@@ -151,7 +151,7 @@ impl State {
             });
 
             self.components.iter_mut().for_each(|component| {
-                component.render(&self.device, self.window.clone(), &mut render_pass)
+                component.render(&self.device, &self.config, &mut render_pass)
             });
         }
 
