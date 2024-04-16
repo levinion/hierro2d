@@ -7,6 +7,11 @@ impl Text {
         Self::default()
     }
 
+    pub fn size(mut self, width: f32, height: f32) -> Self {
+        self.size = (width * 2., height * 2.);
+        self
+    }
+
     pub fn color(mut self, r: f32, g: f32, b: f32, a: f32) -> Self {
         self.config.color = glyphon::Color::rgba(
             (r * 255.) as u8,

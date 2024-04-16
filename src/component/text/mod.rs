@@ -15,6 +15,7 @@ pub struct Text {
     depth: i32,
     on_click: Option<fn(Context)>,
     id: isize,
+    size: (f32, f32),
 }
 
 impl Component for Text {
@@ -78,13 +79,15 @@ impl Component for Text {
     }
 
     fn get_size(&self) -> (f32, f32) {
-        (2., 2.)
+        self.size
     }
 
-    fn set_size(&mut self, _size: (f32, f32)) {}
+    fn set_size(&mut self, size: (f32, f32)) {
+        self.size = size;
+    }
 
     fn click_handler(&self) -> Option<fn(Context)> {
-        self.on_click.clone()
+        self.on_click
     }
 
     fn get_id(&self) -> isize {

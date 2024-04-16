@@ -13,16 +13,16 @@ impl Application for App {
             .size(0.1, 0.1);
         let text = Text::new()
             .content("Hello hierro2d!")
-            .center()
+            .size(1., 1.)
             .on_click(|ctx| ctx.toggle_fullscreen());
         let sub_rect = Rect::new()
-            .size(0.2, 0.2)
+            .size(0.1, 0.1)
             .center()
             .color(100. / 255., 100. / 255., 100. / 255., 0.5)
             .with_child(text);
         Rect::new()
-            .size(0.9, 0.9)
-            .position(0.1, 0.1)
+            .size(0.8, 0.8)
+            .center()
             .radius(0.1)
             .with_child(sub_rect)
             .with_child(img)
