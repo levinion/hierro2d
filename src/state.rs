@@ -1,20 +1,21 @@
 use std::{iter::once, sync::Arc};
 
-use winit::{dpi::PhysicalSize, event::WindowEvent, window::Window};
+use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::{
-    component::{Component, Components},
+    component::{Component, Components, IntoComponent},
+    context::Context,
     Application,
 };
 
 pub struct State {
-    surface: wgpu::Surface<'static>,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
-    size: winit::dpi::PhysicalSize<u32>,
-    window: Arc<Window>,
-    components: Components,
+    pub surface: wgpu::Surface<'static>,
+    pub device: wgpu::Device,
+    pub queue: wgpu::Queue,
+    pub config: wgpu::SurfaceConfiguration,
+    pub window: Arc<Window>,
+    pub components: Components,
+    pub cursor_pos: (f64, f64),
 }
 
 impl State {
@@ -72,20 +73,25 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let mut root = app.view();
+        let mut root = app.view().into_comp();
         root.init(&device, &queue, &config);
         let mut components = root.collect_and_init(&device, &queue, &config);
-        components.push(Box::new(root));
+        components.push(root);
         components.sort_by_key(|a| std::cmp::Reverse(a.depth()));
+        components
+            .iter_mut()
+            .enumerate()
+            .for_each(|(index, comp)| comp.set_id(index as _));
+        let cursor_pos = (0., 0.);
 
         Self {
             surface,
             device,
             queue,
             config,
-            size,
             window,
             components,
+            cursor_pos,
         }
     }
 
@@ -94,21 +100,16 @@ impl State {
     }
 
     pub fn size(&self) -> PhysicalSize<u32> {
-        self.size
+        self.window().inner_size()
     }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
-            self.size = new_size;
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
             self.window().request_redraw();
         }
-    }
-
-    pub fn input(&mut self, _event: &WindowEvent) -> bool {
-        false
     }
 
     pub fn update(&mut self) {}
@@ -153,6 +154,8 @@ impl State {
             self.components.iter_mut().for_each(|component| {
                 component.render(&self.device, &self.config, &mut render_pass)
             });
+
+            drop(render_pass);
         }
 
         self.queue.submit(once(encoder.finish()));
@@ -161,5 +164,9 @@ impl State {
             .iter_mut()
             .for_each(|component| component.clean());
         Ok(())
+    }
+
+    pub fn as_ctx(&mut self) -> Context {
+        Context(self)
     }
 }

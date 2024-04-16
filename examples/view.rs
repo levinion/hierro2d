@@ -1,17 +1,20 @@
 use hierro2d::{
-    component::{Component, Container, Img, Rect, Text},
+    component::{Component, Container, Img, IntoComponent, Rect, Text},
     Application,
 };
 
 struct App;
 
 impl Application for App {
-    fn view(self) -> impl Component {
+    fn view(self) -> impl IntoComponent {
         let img = Img::new()
             .content("/home/maruka/Pictures/bg.jpg")
             .unwrap()
             .size(0.1, 0.1);
-        let text = Text::new().content("Hello hierro2d!").center();
+        let text = Text::new()
+            .content("Hello hierro2d!")
+            .center()
+            .on_click(|ctx| ctx.toggle_fullscreen());
         let sub_rect = Rect::new()
             .size(0.2, 0.2)
             .center()

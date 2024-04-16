@@ -1,5 +1,3 @@
-use crate::component::Component;
-
 use super::Rect;
 
 impl Rect {
@@ -7,12 +5,12 @@ impl Rect {
         Self::default()
     }
     pub fn size(mut self, width: f32, height: f32) -> Self {
-        self.display_config.size = (width, height);
+        self.display_config.size = (width * 2., height * 2.);
         self
     }
 
     pub fn position(mut self, x: f32, y: f32) -> Self {
-        self.display_config.position = (x, y);
+        self.display_config.position = (x * 2. - 1., -(y * 2. - 1.));
         self
     }
 
@@ -28,26 +26,6 @@ impl Rect {
 
     pub fn radius(mut self, radius: f32) -> Self {
         self.display_config.radius = radius;
-        self
-    }
-
-    pub fn center(mut self) -> Self {
-        let size = self.get_size();
-        self.set_position(((1. - size.0) / 2., (1. - size.1) / 2.));
-        self
-    }
-
-    pub fn center_x(mut self) -> Self {
-        let size = self.get_size();
-        let position = self.get_position();
-        self.set_position(((1. - size.0) / 2., position.1));
-        self
-    }
-
-    pub fn center_y(mut self) -> Self {
-        let size = self.get_size();
-        let position = self.get_position();
-        self.set_position((position.0, (1. - size.1) / 2.));
         self
     }
 }

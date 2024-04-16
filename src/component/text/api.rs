@@ -1,4 +1,4 @@
-use crate::component::Component;
+use crate::context::Context;
 
 use super::Text;
 
@@ -7,8 +7,13 @@ impl Text {
         Self::default()
     }
 
-    pub fn color(mut self, r: u8, g: u8, b: u8, a: f32) -> Self {
-        self.config.color = glyphon::Color::rgba(r, g, b, (a * 255.) as u8);
+    pub fn color(mut self, r: f32, g: f32, b: f32, a: f32) -> Self {
+        self.config.color = glyphon::Color::rgba(
+            (r * 255.) as u8,
+            (g * 255.) as u8,
+            (b * 255.) as u8,
+            (a * 255.) as u8,
+        );
         self
     }
 
@@ -18,8 +23,8 @@ impl Text {
     }
 
     pub fn position(mut self, x: f32, y: f32) -> Self {
-        self.config.left = x;
-        self.config.top = y;
+        self.config.left = x * 2. - 1.;
+        self.config.top = -(y * 2. - 1.);
         self
     }
 
@@ -34,23 +39,8 @@ impl Text {
         self
     }
 
-    pub fn center(mut self) -> Self {
-        let size = self.get_size();
-        self.set_position(((1. - size.0) / 2., (1. - size.1) / 2.));
-        self
-    }
-
-    pub fn center_x(mut self) -> Self {
-        let size = self.get_size();
-        let position = self.get_position();
-        self.set_position(((1. - size.0) / 2., position.1));
-        self
-    }
-
-    pub fn center_y(mut self) -> Self {
-        let size = self.get_size();
-        let position = self.get_position();
-        self.set_position((position.0, (1. - size.1) / 2.));
+    pub fn on_click(mut self, f: fn(Context)) -> Self {
+        self.on_click = Some(f);
         self
     }
 }

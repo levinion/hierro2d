@@ -11,7 +11,7 @@ use self::{
     vertex::ImgVertex,
 };
 
-use super::{common, Component, Components};
+use super::{common, Component, Components, IntoComponent};
 
 #[derive(Default)]
 pub struct Img {
@@ -28,6 +28,7 @@ pub struct Img {
     depth: i32,
     texture_raw: Vec<u8>,
     texture: Option<Texture>,
+    id: isize,
 }
 
 struct DisplayConfig {
@@ -39,8 +40,8 @@ struct DisplayConfig {
 impl Default for DisplayConfig {
     fn default() -> Self {
         Self {
-            size: (1., 1.),
-            position: (0., 0.),
+            size: (2., 2.),
+            position: (-1., 1.),
             radius: 0.,
         }
     }
@@ -73,12 +74,14 @@ impl Component for Img {
         self.texture = Some(texture);
     }
 
-    fn render<'a>(
+    fn render<'a, 'b>(
         &'a mut self,
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
-        render_pass: &mut wgpu::RenderPass<'a>,
-    ) {
+        render_pass: &mut wgpu::RenderPass<'b>,
+    ) where
+        'a: 'b,
+    {
         let texture_bind_group = self.create_texture_bind_group(
             device,
             self.texture_bind_group_layout.as_ref().unwrap(),
@@ -134,5 +137,19 @@ impl Component for Img {
 
     fn children(&mut self) -> Option<&mut Components> {
         Some(&mut self.children)
+    }
+
+    fn get_id(&self) -> isize {
+        self.id
+    }
+
+    fn set_id(&mut self, id: isize) {
+        self.id = id;
+    }
+}
+
+impl IntoComponent for Img {
+    fn into_comp(self) -> super::Comp {
+        super::Comp::Img(self)
     }
 }

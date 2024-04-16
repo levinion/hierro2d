@@ -7,7 +7,7 @@ use crate::vertex::Vertex;
 
 use self::{bind_group::create_bind_group_layout, vertex::RectVertex};
 
-use super::{common, container::Container, Component, Components};
+use super::{common, container::Container, Component, Components, IntoComponent};
 pub(crate) use bind_group::RectUniform;
 
 struct DisplayConfig {
@@ -20,8 +20,8 @@ struct DisplayConfig {
 impl Default for DisplayConfig {
     fn default() -> Self {
         Self {
-            size: (1., 1.),
-            position: (0., 0.),
+            size: (2., 2.),
+            position: (-1., 1.),
             color: (0., 0., 1., 1.),
             radius: 0.,
         }
@@ -39,6 +39,7 @@ pub struct Rect {
     bind_group: Option<wgpu::BindGroup>,
     children: Components,
     depth: i32,
+    id: isize,
 }
 
 impl Component for Rect {
@@ -64,12 +65,14 @@ impl Component for Rect {
         self.bind_group_layout = Some(bind_group_layout);
     }
 
-    fn render<'a>(
+    fn render<'a, 'b>(
         &'a mut self,
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
-        render_pass: &mut wgpu::RenderPass<'a>,
-    ) {
+        render_pass: &mut wgpu::RenderPass<'b>,
+    ) where
+        'a: 'b,
+    {
         let bind_group =
             self.create_bind_group(device, self.bind_group_layout.as_ref().unwrap(), config);
         self.bind_group = Some(bind_group);
@@ -115,6 +118,20 @@ impl Component for Rect {
     fn set_position(&mut self, position: (f32, f32)) {
         self.display_config.position = position;
     }
+
+    fn get_id(&self) -> isize {
+        self.id
+    }
+
+    fn set_id(&mut self, id: isize) {
+        self.id = id;
+    }
 }
 
 impl Container for Rect {}
+
+impl IntoComponent for Rect {
+    fn into_comp(self) -> super::Comp {
+        super::Comp::Rect(self)
+    }
+}

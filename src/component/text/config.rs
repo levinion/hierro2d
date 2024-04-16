@@ -13,8 +13,8 @@ pub struct TextConfig {
 impl Default for TextConfig {
     fn default() -> Self {
         Self {
-            left: 0.,
-            top: 0.,
+            left: -1.,
+            top: 1.,
             scale: 1.,
             color: glyphon::Color::rgba(255, 255, 255, 255),
             text_bounds: TextBounds::default(),
@@ -26,8 +26,8 @@ impl Default for TextConfig {
 impl TextConfig {
     pub(crate) fn fit_screen(&self, config: &wgpu::SurfaceConfiguration) -> Self {
         let mut new_instance = self.clone();
-        new_instance.left = self.left * config.width as f32;
-        new_instance.top = self.top * config.height as f32;
+        new_instance.left = (self.left + 1.) / 2. * config.width as f32;
+        new_instance.top = (-self.top + 1.) / 2. * config.height as f32;
         new_instance
     }
 }

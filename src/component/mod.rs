@@ -1,17 +1,30 @@
 mod common;
 mod container;
-mod empty;
 mod img;
 mod rect;
 mod text;
 
 pub use container::Container;
-pub use empty::Empty;
+use enum_dispatch::enum_dispatch;
 pub use img::Img;
 pub use rect::Rect;
 pub use text::Text;
 
-pub trait Component: 'static {
+use crate::context::Context;
+
+pub trait IntoComponent {
+    fn into_comp(self) -> Comp;
+}
+
+#[enum_dispatch(Component)]
+pub enum Comp {
+    Rect(Rect),
+    Img(Img),
+    Text(Text),
+}
+
+#[enum_dispatch]
+pub trait Component: 'static + Sized {
     fn init(
         &mut self,
         _device: &wgpu::Device,
@@ -28,12 +41,14 @@ pub trait Component: 'static {
     ) {
     }
 
-    fn render<'a>(
+    fn render<'a, 'b>(
         &'a mut self,
         _device: &wgpu::Device,
         _config: &wgpu::SurfaceConfiguration,
-        _render_pass: &mut wgpu::RenderPass<'a>,
-    ) {
+        _render_pass: &mut wgpu::RenderPass<'b>,
+    ) where
+        'a: 'b,
+    {
     }
 
     fn clean(&mut self) {}
@@ -54,15 +69,42 @@ pub trait Component: 'static {
 
     fn set_position(&mut self, position: (f32, f32));
 
+    fn get_id(&self) -> isize;
+
+    fn set_id(&mut self, id: isize);
+
+    #[allow(unused_mut)]
+    fn center(mut self) -> Self {
+        let size = self.get_size();
+        self.set_position(((2. - size.0) / 2. - 1., 1. - (2. - size.1) / 2.));
+        self
+    }
+
+    #[allow(unused_mut)]
+    fn center_x(mut self) -> Self {
+        let size = self.get_size();
+        let position = self.get_position();
+        self.set_position(((2. - size.0) / 2. - 1., position.1));
+        self
+    }
+
+    #[allow(unused_mut)]
+    fn center_y(mut self) -> Self {
+        let size = self.get_size();
+        let position = self.get_position();
+        self.set_position((position.0, 1. - (2. - size.1) / 2.));
+        self
+    }
+
     /// inner method
     fn apply_workspace(&mut self, size: (f32, f32), offset: (f32, f32)) {
         let position = self.get_position();
         self.set_position((
-            offset.0 + position.0 * size.0,
-            offset.1 + position.1 * size.1,
+            offset.0 + (position.0 + 1.) * size.0 / 2.,
+            offset.1 + (position.1 - 1.) * size.1 / 2.,
         ));
         let ori_size = self.get_size();
-        self.set_size((ori_size.0 * size.0, ori_size.1 * size.1));
+        self.set_size((ori_size.0 * size.0 / 2., ori_size.1 * size.1 / 2.));
         if let Some(children) = self.children() {
             children
                 .iter_mut()
@@ -95,6 +137,11 @@ pub trait Component: 'static {
             None => vec![],
         }
     }
+
+    /// inner method
+    fn click_handler(&self) -> Option<fn(Context)> {
+        None
+    }
 }
 
-pub type Components = Vec<Box<dyn Component>>;
+pub type Components = Vec<Comp>;

@@ -7,32 +7,10 @@ use super::{
     Img,
 };
 
-#[derive(Debug)]
-struct NormalizedDisplayConfig {
-    size: (f32, f32),
-    position: (f32, f32),
-    radius: f32,
-}
-
 impl Img {
-    fn normalize(&self) -> NormalizedDisplayConfig {
-        let (width, height) = self.display_config.size;
-        let size = (width * 2., height * 2.);
-        let (x, y) = self.display_config.position;
-        let position = (x * 2. - 1., -y * 2. + 1.);
-        NormalizedDisplayConfig {
-            size,
-            position,
-            radius: self.display_config.radius,
-        }
-    }
-
     pub(crate) fn create_vertices(&self) -> Vec<ImgVertex> {
-        let NormalizedDisplayConfig {
-            size: (width, height),
-            position: (x, y),
-            ..
-        } = self.normalize();
+        let (x, y) = self.display_config.position;
+        let (width, height) = self.display_config.size;
         let vertices = &[
             ImgVertex {
                 position: [x, y - height],
@@ -69,12 +47,9 @@ impl Img {
         layout: &wgpu::BindGroupLayout,
         config: &wgpu::SurfaceConfiguration,
     ) -> wgpu::BindGroup {
-        let NormalizedDisplayConfig {
-            size: (width, height),
-            position: (x, y),
-            radius,
-            ..
-        } = self.normalize();
+        let (x, y) = self.display_config.position;
+        let (width, height) = self.display_config.size;
+        let radius = self.display_config.radius;
         let resolution = [config.width as f32, config.height as f32];
         let buffer = create_rect_buffer(
             device,
